@@ -103,6 +103,20 @@ impl<T: NoUninit> RawBufferVec<T> {
         self.values.append(&mut other.values);
     }
 
+    /// Sets the value at the given index.
+    ///
+    /// The index must be less than [`RawBufferVec::len`].
+    pub fn set(&mut self, index: u32, value: T) {
+        self.values[index as usize] = value;
+    }
+
+    /// Preallocates space for `count` elements in the internal CPU-side buffer.
+    ///
+    /// Unlike [`RawBufferVec::reserve`], this doesn't have any effect on the GPU buffer.
+    pub fn reserve_internal(&mut self, count: usize) {
+        self.values.reserve(count);
+    }
+
     /// Changes the debugging label of the buffer.
     ///
     /// The next time the buffer is updated (via [`reserve`](Self::reserve)), Bevy will inform
@@ -174,12 +188,29 @@ impl<T: NoUninit> RawBufferVec<T> {
         self.values.clear();
     }
 
+    /// Removes and returns the last element in the buffer.
+    pub fn pop(&mut self) -> Option<T> {
+        self.values.pop()
+    }
+
     pub fn values(&self) -> &Vec<T> {
         &self.values
     }
 
     pub fn values_mut(&mut self) -> &mut Vec<T> {
         &mut self.values
+    }
+}
+
+impl<T> RawBufferVec<T>
+where
+    T: NoUninit + Default,
+{
+    pub fn grow_set(&mut self, index: u32, value: T) {
+        while index as usize + 1 > self.len() {
+            self.values.push(T::default());
+        }
+        self.values[index as usize] = value;
     }
 }
 
